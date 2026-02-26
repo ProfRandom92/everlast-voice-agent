@@ -12,12 +12,16 @@ import uuid
 from datetime import datetime
 import httpx
 
-# Import LangGraph components (from local everlast_agents package)
+# Import LangGraph components (from local everlast_agents folder)
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 try:
     from everlast_agents.agent_system import process_message, end_conversation, get_conversation_history, clear_conversation
     from everlast_agents.state import create_initial_state, analyze_sentiment, SentimentState
     from everlast_agents.checkpointer import get_checkpointer, BaseCheckpointer
-    print("LangGraph imported successfully from everlast_agents package")
+    print("LangGraph imported successfully from everlast_agents")
 except ImportError as e:
     print(f"LangGraph import error: {e}")
     import traceback
