@@ -257,7 +257,7 @@ class AgentState(TypedDict):
     metadata: CallMetadata
 
     # Checkpoint info
-    checkpoint_id: Optional[str]
+    conversation_checkpoint_id: Optional[str]
     last_checkpoint: Optional[str]
 
 # ============================================================================
@@ -387,6 +387,6 @@ def create_initial_state(
             start_time=datetime.now().isoformat(),
             vapi_call_id=vapi_call_id
         ),
-        "checkpoint_id": None,
+        "conversation_checkpoint_id": None,
         "last_checkpoint": None
     }
