@@ -27,9 +27,14 @@ from .voice_checkpointer import get_checkpointer, BaseCheckpointer
 
 # Initialize checkpointer based on environment
 CHECKPOINTER_BACKEND = os.getenv("CHECKPOINTER_BACKEND", "sqlite")
+# Only pass db_path for SQLite backend
+checkpointer_kwargs = {}
+if CHECKPOINTER_BACKEND == "sqlite":
+    checkpointer_kwargs["db_path"] = "checkpoints.db"
+
 checkpointer: BaseCheckpointer = get_checkpointer(
     backend=CHECKPOINTER_BACKEND,
-    db_path="checkpoints.db" if CHECKPOINTER_BACKEND == "sqlite" else None
+    **checkpointer_kwargs
 )
 
 # ============================================================================
