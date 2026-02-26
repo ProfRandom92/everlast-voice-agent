@@ -144,7 +144,7 @@ export default function Dashboard() {
         .gte('created_at', new Date(Date.now() - parseInt(timeRange) * 24 * 60 * 60 * 1000).toISOString())
 
       const totalCalls = statsData?.length || 0
-      const booked = statsData?.filter(c => c.call_outcome === 'Termin gebucht').length || 0
+      const booked = statsData?.filter((c: any) => c.call_outcome === 'Termin gebucht').length || 0
 
       setStats({
         total_calls: totalCalls,
