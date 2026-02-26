@@ -1,12 +1,16 @@
-# 🤖 Everlast Voice Agent
+# 🤖 AI Voice Agent Challenge
 
+[![Challenge](https://img.shields.io/badge/Challenge-2026-blue.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-15+-black.svg)](https://nextjs.org/)
 
-> **AI Voice Agent für B2B Lead-Qualifizierung**
-> Ein produktionsreifer Voice Agent, der 24/7 eingehende Anrufe entgegennimmt, Leads nach BANT-Kriterien qualifiziert und automatisch Demo-Termine bucht.
+> **🏆 Challenge-Projekt: AI Voice Agent für B2B Lead-Qualifizierung**
+>
+> Dies ist ein Challenge-Projekt, das einen produktionsreifen Voice Agent demonstriert. Der Agent nimmt 24/7 eingehende Anrufe entgegen, qualifiziert Leads nach BANT-Kriterien und bucht automatisch Demo-Termine.
+>
+> **Hinweis:** *"Everlast" ist ein fiktives Beispielunternehmen für diese Challenge.*
 
 ```mermaid
 graph TB
@@ -45,7 +49,7 @@ graph TB
 
 ### 🎯 Core Capabilities
 - **Natürliche Gesprächsführung** - Kontextuelles Verständnis, Rückfragen, kein starres Skript
-- **BANT-Qualifizierung** - Budget, Authority, Need, Timeline + Everlast-spezifische Kriterien
+- **BANT-Qualifizierung** - Budget, Authority, Need, Timeline + Unternehmensspezifische Kriterien
 - **Objection-Handling** - Professionelle Einwandbehandlung mit deutschen Sales-Patterns
 - **Automatische Terminbuchung** - Direkte Calendly-Integration
 - **DSGVO-Compliance** - Consent-Management, EU-Region, Zero-Retention
