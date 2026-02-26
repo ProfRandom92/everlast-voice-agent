@@ -1,16 +1,16 @@
-# 🤖 AI Voice Agent Challenge
+# 🤖 Everlast Voice Agent
 
-[![Challenge](https://img.shields.io/badge/Challenge-2026-blue.svg)]()
+[![Everlast](https://img.shields.io/badge/Everlast-Consulting-blue.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-15+-black.svg)](https://nextjs.org/)
 
-> **🏆 Challenge-Projekt: AI Voice Agent für B2B Lead-Qualifizierung**
+> **🏆 Everlast Challenge 2026: AI Voice Agent für B2B Lead-Qualifizierung**
 >
-> Dies ist ein Challenge-Projekt, das einen produktionsreifen Voice Agent demonstriert. Der Agent nimmt 24/7 eingehende Anrufe entgegen, qualifiziert Leads nach BANT-Kriterien und bucht automatisch Demo-Termine.
+> Ein produktionsreifer Voice Agent, der 24/7 eingehende Anrufe entgegennimmt, Leads nach BANT-Kriterien qualifiziert und automatisch Demo-Termine bucht.
 >
-> **Hinweis:** *"Everlast" ist ein fiktives Beispielunternehmen für diese Challenge.*
+> **Für:** [Everlast Consulting](https://everlast.consulting) | **Challenge:** Voice Agent Implementation 2026
 
 ```mermaid
 graph TB
