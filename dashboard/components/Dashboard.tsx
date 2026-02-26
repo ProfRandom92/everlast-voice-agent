@@ -158,7 +158,7 @@ export default function Dashboard() {
         .select('lead_score')
 
       const distribution: LeadDistribution = { A: 0, B: 0, C: 0, N: 0 }
-      leadsData?.forEach(lead => {
+      leadsData?.forEach((lead: any) => {
         if (lead.lead_score in distribution) {
           distribution[lead.lead_score as keyof LeadDistribution]++
         }
@@ -178,7 +178,7 @@ export default function Dashboard() {
         .order('started_at', { ascending: false })
         .limit(10)
 
-      const formattedCalls: RecentCall[] = callsData?.map(call => ({
+      const formattedCalls: RecentCall[] = callsData?.map((call: any) => ({
         id: call.id,
         phone_number: call.phone_number,
         started_at: call.started_at,
@@ -200,7 +200,7 @@ export default function Dashboard() {
         total: objectionsData?.length || 0
       }
 
-      objectionsData?.forEach(obj => {
+      objectionsData?.forEach((obj: any) => {
         objStats.by_type[obj.objection_type] = (objStats.by_type[obj.objection_type] || 0) + 1
         if (obj.outcome in objStats.by_outcome) {
           objStats.by_outcome[obj.outcome]++
