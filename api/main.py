@@ -232,7 +232,20 @@ async def health_check():
     return {
         "status": "healthy",
         "supabase_connected": supabase is not None,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "langgraph_enabled": True,
+        "checkpointer_backend": CHECKPOINTER_BACKEND
+    }
+
+@app.get("/debug/imports")
+async def debug_imports():
+    """Debug endpoint to verify LangGraph imports"""
+    import sys
+    return {
+        "python_path": sys.path[:5],
+        "everlast_voice_agents_in_path": "everlast_voice_agents" in str(sys.path),
+        "process_message": str(process_message) if 'process_message' in dir() else "NOT LOADED",
+        "checkpointer_available": checkpointer is not None if 'checkpointer' in dir() else False
     }
 
 @app.post("/vapi/webhook")

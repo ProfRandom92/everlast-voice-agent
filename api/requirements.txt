@@ -23,3 +23,6 @@ pydantic>=2.5.0
 
 # Date/Time
 python-dateutil>=2.8.2
+
+# Build trigger - force rebuild on 2026-02-26
+cache-bust=1
