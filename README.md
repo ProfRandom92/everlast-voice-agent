@@ -1,173 +1,224 @@
-# Everlast Voice Agent - B2B Lead Qualification System
+# 🤖 Everlast Voice Agent
 
-![Everlast](https://img.shields.io/badge/Everlast-AI%20Voice%20Agent-blue)
-![Version](https://img.shields.io/badge/version-1.0.0-green)
-![License](https://img.shields.io/badge/license-MIT-orange)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-15+-black.svg)](https://nextjs.org/)
 
-Ein produktionsreifer AI Voice Agent für B2B-Lead-Qualifizierung und automatische Demo-Terminbuchung.
+> **AI Voice Agent für B2B Lead-Qualifizierung**
+> Ein produktionsreifer Voice Agent, der 24/7 eingehende Anrufe entgegennimmt, Leads nach BANT-Kriterien qualifiziert und automatisch Demo-Termine bucht.
 
-## Architektur-Überblick
+```mermaid
+graph TB
+    subgraph "Voice Layer"
+        VAPI[Vapi Platform]
+        STT[Deepgram Nova-2]
+        TTS[ElevenLabs Matilda]
+    end
 
+    subgraph "AI Brain"
+        SUP[Supervisor<br/>Claude 4]
+        BANT[BANT Qualifier]
+        OBJ[Objection Handler]
+        CAL[Calendly Booker]
+        DSG[DSGVO Logger]
+    end
+
+    subgraph "Data Layer"
+        SB[(Supabase EU)]
+        CALAPI[Calendly API]
+    end
+
+    VAPI <-- Webhook --> SUP
+    STT -- Transcript --> SUP
+    SUP -- Response --> TTS
+    SUP --> BANT
+    SUP --> OBJ
+    SUP --> CAL
+    SUP --> DSG
+    BANT --> SB
+    CAL --> CALAPI
+    DSG --> SB
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      EVERLAST VOICE AGENT                       │
-├─────────────────────────────────────────────────────────────────┤
-│  Voice Layer: Vapi (Telefonie, STT/TTS, Turn-Management)        │
-│  STT: Deepgram Nova-2 German                                    │
-│  TTS: ElevenLabs Matilda German                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  Backend: FastAPI + LangGraph (Multi-Agent-System)              │
-│  ┌─────────────┬──────────────┬──────────────┬─────────────────┐│
-│  │ BANT-Agent  │ Objection-   │ Calendly-    │ DSGVO-Logger    ││
-│  │ (Quali)     │ Handler      │ Booking      │ & CRM-Writer    ││
-│  └─────────────┴──────────────┴──────────────┴─────────────────┘│
-│                      ↑ SUPERVISOR (Claude 4)                    │
-├─────────────────────────────────────────────────────────────────┤
-│  Datenbank: Supabase (EU-Region Frankfurt)                      │
-│  Kalender: Calendly API                                         │
-├─────────────────────────────────────────────────────────────────┤
-│  Dashboard: Next.js 15 + Supabase Realtime                    │
-└─────────────────────────────────────────────────────────────────┘
+
+## ✨ Features
+
+### 🎯 Core Capabilities
+- **Natürliche Gesprächsführung** - Kontextuelles Verständnis, Rückfragen, kein starres Skript
+- **BANT-Qualifizierung** - Budget, Authority, Need, Timeline + Everlast-spezifische Kriterien
+- **Objection-Handling** - Professionelle Einwandbehandlung mit deutschen Sales-Patterns
+- **Automatische Terminbuchung** - Direkte Calendly-Integration
+- **DSGVO-Compliance** - Consent-Management, EU-Region, Zero-Retention
+
+### 🧠 AI Architecture
+```mermaid
+flowchart TB
+    subgraph "Supervisor Agent"
+        S[Claude 4 Supervisor]
+        S -->|Route| A1
+        S -->|Route| A2
+        S -->|Route| A3
+        S -->|Route| A4
+    end
+
+    subgraph "Specialized Agents"
+        A1[BANT Qualifier]
+        A2[Objection Handler]
+        A3[Calendly Booker]
+        A4[DSGVO Logger]
+    end
+
+    subgraph "State Management"
+        CP[(Checkpointer)]
+        S <-->|Read/Write| CP
+    end
+
+    style S fill:#4f46e5,color:#fff
+    style A1 fill:#22c55e,color:#fff
+    style A2 fill:#f59e0b,color:#fff
+    style A3 fill:#3b82f6,color:#fff
+    style A4 fill:#6b7280,color:#fff
 ```
 
-## Features
+### 📊 Real-time Dashboard
+- **Conversion Rate** - Live-Tracking der Terminbuchungsrate (Ziel: ≥35%)
+- **Lead-Scoring** - A/B/C-Verteilung qualifizierter Leads
+- **Gesprächsanalyse** - Ø Call-Dauer, Drop-off Points, Einwände
+- **Sentiment-Tracking** - Echtzeit-Emotionsanalyse
 
-### Voice Agent "Anna"
-- **Natürliche Gesprächsführung**: Kontextuelles Verständnis, Rückfragen, kein starres Skript
-- **BANT-Qualifizierung**: Budget, Authority, Need, Timeline + Everlast-spezifische Kriterien
-- **Objection-Handling**: Professionelle Einwandbehandlung mit deutschen Sales-Patterns
-- **Automatische Terminbuchung**: Direkte Calendly-Integration
-- **DSGVO-Compliance**: Consent-Management, EU-Region, Zero-Retention
+## 🏗️ Architecture
 
-### Dashboard & KPIs
-- **Conversion Rate**: Live-Tracking der Terminbuchungsrate (Ziel: ≥35%)
-- **Lead-Scoring**: A/B/C-Verteilung qualifizierter Leads
-- **Gesprächsanalyse**: Ø Call-Dauer, Drop-off Points, Einwände
-- **Echtzeit-Monitoring**: Supabase Realtime für Live-Updates
+```mermaid
+graph LR
+    subgraph "Frontend"
+        D[Next.js 15 Dashboard]
+        D -->|Realtime| SB
+    end
 
-## Tech Stack
+    subgraph "Backend"
+        F[FastAPI]
+        LG[LangGraph]
+        CP[Checkpointer]
+        F --> LG
+        LG --> CP
+    end
 
-| Komponente | Technologie |
-|------------|-------------|
-| Voice Platform | Vapi |
-| STT | Deepgram Nova-2 German |
-| TTS | ElevenLabs Matilda German |
-| LLM | Claude 4 (Supervisor + Agents) |
-| Backend | Python 3.11, FastAPI, LangGraph |
-| Datenbank | Supabase (PostgreSQL, EU-Region) |
-| Kalender | Calendly API |
-| Dashboard | Next.js 15, TypeScript, Tailwind |
-| Deployment | Railway (Backend), Vercel (Dashboard) |
+    subgraph "Voice Platform"
+        V[Vapi]
+        DG[Deepgram STT]
+        EL[ElevenLabs TTS]
+        V --> DG
+        V --> EL
+    end
 
-## Quick Start
+    subgraph "Data Layer"
+        SB[(Supabase)]
+        CL[Calendly API]
+    end
 
-### 1. Vapi Einrichtung
+    V -->|Webhook| F
+    F -->|Store| SB
+    F -->|Book| CL
+    D -->|Query| SB
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.11+
+- Node.js 20+
+- Railway CLI: `npm install -g @railway/cli`
+- Vercel CLI: `npm install -g vercel`
+- Supabase CLI: `npm install -g supabase`
+
+### Installation
+
 ```bash
-# Vapi Assistant importieren
-curl -X POST https://api.vapi.ai/assistant \
-  -H "Authorization: Bearer $VAPI_API_KEY" \
-  -d @vapi/assistant.json
+# Clone repository
+git clone https://github.com/ProfRandom92/everlast-voice-agent.git
+cd everlast-voice-agent
+
+# Setup environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# Install dependencies
+cd api && pip install -r requirements.txt
+cd ../dashboard && npm install
 ```
 
-### 2. Backend Deployment
+### Deployment
+
 ```bash
+# Deploy backend
 cd api
-pip install -r requirements.txt
-# .env konfigurieren (siehe .env.example)
 railway login
 railway up
-```
 
-### 3. Supabase Setup
-```bash
-# Migration ausführen
-supabase link --project-ref $PROJECT_REF
+# Deploy dashboard
+cd ../dashboard
+vercel --prod
+
+# Push database schema
+supabase login
 supabase db push
 ```
 
-### 4. Dashboard Deployment
+## 📖 Documentation
+
+- [Architecture](docs/architecture.md) - System architecture and data flow
+- [Deployment](DEPLOY.md) - Detailed deployment guide
+- [Demo Script](docs/demo-script.md) - Demo call script
+- [Test Scenarios](tests/scenarios.md) - 10 test scenarios
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VAPI_API_KEY` | Vapi API key | ✅ |
+| `ANTHROPIC_API_KEY` | Claude API key | ✅ |
+| `SUPABASE_URL` | Supabase project URL | ✅ |
+| `SUPABASE_SERVICE_KEY` | Supabase service role key | ✅ |
+| `CALENDLY_API_KEY` | Calendly API key | ✅ |
+| `ELEVENLABS_API_KEY` | ElevenLabs API key (optional) | ❌ |
+
+## 📊 Monitoring
+
+### Health Check
 ```bash
-cd dashboard
-npm install
-vercel --prod
+curl https://everlast-voice-agent-production.up.railway.app/health
 ```
 
-## Umgebungsvariablen
+### Dashboard
+Access the real-time dashboard at: `https://everlast-dashboard.vercel.app`
 
-```env
-# Vapi
-VAPI_API_KEY=sk_...
-VAPI_ASSISTANT_ID=...
+## 🤝 Contributing
 
-# Anthropic
-ANTHROPIC_API_KEY=sk-ant-...
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-# Supabase
-SUPABASE_URL=https://....supabase.co
-SUPABASE_SERVICE_KEY=eyJ...
+## 📄 License
 
-# Calendly
-CALENDLY_API_KEY=eyJ...
-CALENDLY_USER_URI=https://api.calendly.com/users/...
-CALENDLY_EVENT_TYPE_URI=https://api.calendly.com/event_types/...
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-# ElevenLabs (optional, falls Custom Voice)
-ELEVENLABS_API_KEY=sk_...
-```
+## 🙏 Acknowledgments
 
-## Projektstruktur
+- [Vapi](https://vapi.ai/) for voice infrastructure
+- [LangGraph](https://langchain-ai.github.io/langgraph/) for agent orchestration
+- [Claude](https://anthropic.com/claude) for LLM capabilities
+- [Supabase](https://supabase.com/) for database infrastructure
 
-```
-everlast-voice-agent/
-├── vapi/                 # Vapi Assistant JSON, Tool Definitions
-├── langgraph/            # Supervisor + 4 Agent Nodes
-├── api/                  # FastAPI Webhook Endpoints
-├── dashboard/            # Next.js KPI Dashboard
-├── prompts/              # System-Prompts, Few-Shot Examples
-├── supabase/             # Schema Migration, RLS Policies
-├── tests/                # Test-Call Scripts (10 Szenarien)
-└── docs/                 # Architektur-Dokumentation
-```
+---
 
-## Test-Szenarien
+<div align="center">
 
-Das System wurde mit folgenden Szenarien validiert:
+**[⬆ Back to Top](#-everlast-voice-agent)**
 
-1. **Warm Lead** - Lead kennt Everlast, hohes Interesse
-2. **Cold Lead** - Erstkontakt, geringes Vorwissen
-3. **Budget-Einwand** - "Zu teuer für uns"
-4. **Zeit-Einwand** - "Rufen Sie nächsten Monat an"
-5. **Nicht-Entscheider** - Muss mit GF sprechen
-6. **Bereits-Tool** - Nutzt bereits KI-Lösung
-7. **Kurz-Call** - Nur 2 Minuten Zeit
-8. **Technisch-affin** - Sehr detaillierte Fragen
-9. **Skeptisch** - Misstrauisch gegenüber KI
-10. **Sofort-Termin** - Will sofort buchen
+Made with ❤️ by the Everlast Team
 
-## DSGVO & Compliance
-
-- ✅ Supabase EU-Region (Frankfurt)
-- ✅ Zero-Retention bei Vapi/STT
-- ✅ Explizite Consent-Einholung am Gesprächsbeginn
-- ✅ Automatische Aufzeichnungs-Stop bei Ablehnung
-- ✅ Vollständige Löschung auf Anfrage
-- Audit-Log aller Datenverarbeitungen
-
-## Performance-Ziele
-
-| Metrik | Ziel | Status |
-|--------|------|--------|
-| Latenz | < 1.5s | ✅ 0.8s Ø |
-| Conversion Rate | ≥ 35% | 🎯 Tracking |
-| Ø Gesprächsdauer | < 4:30 min | 🎯 Tracking |
-| Terminbuchungsrate | ≥ 30% | 🎯 Tracking |
-
-## Support
-
-Bei Fragen oder Problemen:
-- Email: support@everlast.consulting
-- Dashboard: /admin/support
-
-## Lizenz
-
-MIT License - Copyright 2026 Everlast Consulting
+</div>
