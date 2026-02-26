@@ -15,9 +15,34 @@ import httpx
 # Import LangGraph components
 import sys
 sys.path.append('..')
-from langgraph.agent_system import process_message, end_conversation, get_conversation_history, clear_conversation
-from langgraph.state import create_initial_state, analyze_sentiment, SentimentState
-from langgraph.checkpointer import get_checkpointer, BaseCheckpointer
+try:
+    from langgraph.agent_system import process_message, end_conversation, get_conversation_history, clear_conversation
+    from langgraph.state import create_initial_state, analyze_sentiment, SentimentState
+    from langgraph.checkpointer import get_checkpointer, BaseCheckpointer
+    print("LangGraph imported successfully")
+except ImportError as e:
+    print(f"LangGraph import error: {e}")
+    import traceback
+    traceback.print_exc()
+    # Mock implementations as fallback
+    async def process_message(*args, **kwargs):
+        return {"messages": [{"content": "Mock response - LangGraph not available"}], "current_agent": "mock"}
+    async def end_conversation(*args, **kwargs):
+        return {"summary": "Mock summary"}
+    async def get_conversation_history(*args, **kwargs):
+        return None
+    async def clear_conversation(*args, **kwargs):
+        pass
+    def create_initial_state(*args, **kwargs):
+        return {}
+    def analyze_sentiment(*args, **kwargs):
+        return type('obj', (object,), {'current_sentiment': 'neutral', 'get_tts_adjustments': lambda: {}})()
+    class SentimentState:
+        pass
+    def get_checkpointer(*args, **kwargs):
+        return None
+    class BaseCheckpointer:
+        pass
 
 # Supabase client
 from supabase import create_client, Client
