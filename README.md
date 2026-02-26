@@ -189,12 +189,214 @@ supabase db push
 
 ---
 
+## 🚀 Deployment
+
+The Everlast Voice Agent is successfully deployed and running on Railway.
+
+### Production URL
+
+**Base URL:** `https://everlast-voice-agent-production.up.railway.app`
+
+### Verification
+
+To verify the deployment is active:
+
+```bash
+curl https://everlast-voice-agent-production.up.railway.app/health
+```
+
+Expected response:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-02-26T12:00:00Z",
+  "version": "1.0.0"
+}
+```
+
+### Environment
+
+- **Platform:** Railway
+- **Region:** Europe (EU)
+- **Runtime:** Python 3.11
+- **Framework:** FastAPI + LangGraph
+
+---
+
 ## 📖 Documentation
 
 - [Architecture](docs/architecture.md) - System architecture and data flow
 - [Deployment](DEPLOY.md) - Detailed deployment guide
 - [Demo Script](docs/demo-script.md) - Demo call script
 - [Test Scenarios](tests/scenarios.md) - 10 test scenarios
+
+---
+
+## 🔌 API Endpoints
+
+The following REST API endpoints are available on the production deployment:
+
+### Health Check
+
+**GET** `/health`
+
+Returns the current health status of the application.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-02-26T12:00:00Z",
+  "version": "1.0.0"
+}
+```
+
+---
+
+### Vapi Webhook
+
+**POST** `/vapi/webhook`
+
+Main webhook endpoint for Vapi voice platform integration. Receives call events, transcripts, and tool execution requests.
+
+**Headers:**
+- `Content-Type: application/json`
+
+**Request Body:**
+```json
+{
+  "message": {
+    "type": "tool-calls",
+    "tool_calls": [...],
+    "call": {...}
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "tool_call_id": "call_123",
+      "result": "Success"
+    }
+  ]
+}
+```
+
+---
+
+### Get Conversation History
+
+**GET** `/api/checkpoints/{phone}`
+
+Retrieves the conversation history and state checkpoints for a specific phone number.
+
+**Path Parameters:**
+- `phone` (string, required): Phone number in E.164 format (e.g., `+49123456789`)
+
+**Response:**
+```json
+{
+  "phone_number": "+49123456789",
+  "checkpoints": [
+    {
+      "id": "uuid",
+      "timestamp": "2026-02-26T12:00:00Z",
+      "bant_score": {...},
+      "sentiment": "positive"
+    }
+  ]
+}
+```
+
+---
+
+### Conversion Statistics
+
+**GET** `/api/stats/conversion`
+
+Returns aggregate conversion statistics and BANT qualification metrics.
+
+**Response:**
+```json
+{
+  "total_calls": 150,
+  "qualified_leads": 45,
+  "conversion_rate": 0.30,
+  "appointments_booked": 28,
+  "average_bant_score": 3.2,
+  "period": "2026-02-01 to 2026-02-26"
+}
+```
+
+### Base URL
+
+All endpoints are available at:
+```
+https://everlast-voice-agent-production.up.railway.app
+```
+
+---
+
+## 🔄 LangGraph Integration
+
+The voice agent uses LangGraph for stateful multi-agent orchestration.
+
+### Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "LangGraph Workflow"
+        START([Start]) --> SUP[Supervisor Node]
+        SUP --> ROUTER{Router}
+        ROUTER -->|BANT| BANT[BANT Qualifier Node]
+        ROUTER -->|OBJ| OBJ[Objection Handler Node]
+        ROUTER -->|CAL| CAL[Calendly Booker Node]
+        ROUTER -->|DSG| DSG[DSGVO Logger Node]
+        BANT --> SUP
+        OBJ --> SUP
+        CAL --> SUP
+        DSG --> SUP
+        SUP --> END([End])
+    end
+
+    subgraph "State Management"
+        CP[(SQLite Checkpointer)]
+        SUP <-->|Read/Write| CP
+    end
+```
+
+### State Management
+
+The agent maintains conversation state using LangGraph's checkpointer:
+
+- **Checkpoint ID:** Unique identifier for each conversation thread
+- **Phone Number:** Used as the conversation thread identifier
+- **State Persistence:** All BANT scores, objections, and booking data are persisted
+- **Recovery:** Conversations can be resumed after interruption
+
+### Supervisor Routing
+
+The Supervisor agent (Claude 4) routes conversations to specialized agents:
+
+| Agent | Purpose | Trigger |
+|-------|---------|---------|
+| BANT Qualifier | Qualify leads by Budget, Authority, Need, Timeline | Initial qualification needed |
+| Objection Handler | Address concerns and objections | Negative sentiment detected |
+| Calendly Booker | Schedule demo appointments | High BANT score achieved |
+| DSGVO Logger | Record consent and privacy info | Data collection occurs |
+
+### Checkpointer Configuration
+
+```python
+# SQLite-based persistence
+from langgraph.checkpoint.sqlite import SqliteSaver
+
+checkpointer = SqliteSaver(db_path="/data/checkpoints.db")
+graph = workflow.compile(checkpointer=checkpointer)
+```
 
 ---
 
@@ -222,6 +424,135 @@ curl https://everlast-voice-agent-production.up.railway.app/health
 
 ### Dashboard
 Access the real-time dashboard at: `https://everlast-dashboard.vercel.app`
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues and Fixes
+
+#### 1. ToolExecutor Import Error
+
+**Issue:** `ImportError: cannot import name 'ToolExecutor' from 'langgraph'`
+
+**Cause:** ToolExecutor has been removed in newer versions of LangGraph.
+
+**Fix:** Remove the ToolExecutor import and use the standard tool invocation pattern:
+
+```python
+# OLD (Not Working)
+from langgraph import ToolExecutor
+
+# NEW (Working)
+# Tools are called directly within node functions
+async def call_tools(state: dict, config: dict):
+    tool_calls = state["messages"][-1].tool_calls
+    results = []
+    for tool_call in tool_calls:
+        tool = tools_by_name[tool_call["name"]]
+        result = await tool.ainvoke(tool_call["args"])
+        results.append(result)
+    return results
+```
+
+---
+
+#### 2. Checkpoint ID Naming
+
+**Issue:** `KeyError: 'checkpoint_id'` when resuming conversations
+
+**Cause:** LangGraph changed the configuration key from `checkpoint_id` to `checkpoint_ns`.
+
+**Fix:** Update all references from `checkpoint_id` to `checkpoint_ns`:
+
+```python
+# OLD
+config = {"configurable": {"checkpoint_id": phone_number}}
+
+# NEW
+config = {"configurable": {"checkpoint_ns": phone_number}}
+```
+
+---
+
+#### 3. Database Path Handling
+
+**Issue:** `sqlite3.OperationalError: unable to open database file` in production
+
+**Cause:** Hardcoded relative paths don't work in containerized environments.
+
+**Fix:** Use environment-based path configuration with proper directory creation:
+
+```python
+# OLD
+DB_PATH = "./data/checkpoints.db"
+
+# NEW
+import os
+
+DB_PATH = os.environ.get("DATABASE_PATH", "/data/checkpoints.db")
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+```
+
+---
+
+#### 4. Railway Deployment Health Check Failures
+
+**Issue:** Application deploys but health checks fail
+
+**Cause:** Port binding or startup time issues.
+
+**Fix:** Ensure proper FastAPI configuration:
+
+```python
+# In main.py or app.py
+import uvicorn
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+```
+
+---
+
+#### 5. Vapi Webhook Timeouts
+
+**Issue:** Webhook calls from Vapi timeout
+
+**Cause:** LangGraph graph compilation or database queries taking too long.
+
+**Fix:** Implement async processing and connection pooling:
+
+```python
+# Use async database connections
+# Implement connection pooling for Supabase
+# Cache compiled LangGraph workflows
+```
+
+---
+
+### Debugging Tips
+
+1. **Enable Debug Logging:**
+   ```python
+   import logging
+   logging.basicConfig(level=logging.DEBUG)
+   ```
+
+2. **Check Railway Logs:**
+   ```bash
+   railway logs --follow
+   ```
+
+3. **Test Locally First:**
+   ```bash
+   cd api
+   uvicorn main:app --reload
+   curl http://localhost:8000/health
+   ```
+
+4. **Verify Environment Variables:**
+   All required environment variables must be set in Railway dashboard.
 
 ---
 
