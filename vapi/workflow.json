@@ -1,0 +1,342 @@
+{
+  "name": "Everlast BANT Workflow",
+  "description": "5-step workflow for B2B lead qualification with BANT criteria",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "step_1_greeting_consent",
+      "name": "Greeting + DSGVO Consent",
+      "type": "conversation",
+      "description": "Initial greeting and GDPR consent collection",
+      "config": {
+        "firstMessage": "Guten Tag, hier ist Anna von Everlast Consulting. Ich rufe an, weil Sie sich unsere Case Study zur Lead-Reaktivierung angesehen haben.",
+        "consentMessage": "Zu Ihrer Information: Dieses Gespräch wird zur Qualitätssicherung aufgezeichnet. Ihre Daten werden gemäß DSGVO in der EU verarbeitet. Sie können jederzeit Auskunft oder Löschung verlangen. Ist das für Sie in Ordnung?",
+        "waitForConsent": true,
+        "onConsentGranted": {
+          "action": "proceed",
+          "nextStep": "step_2_bant_qualifier"
+        },
+        "onConsentDenied": {
+          "action": "proceed_without_recording",
+          "nextStep": "step_2_bant_qualifier",
+          "flags": {
+            "recordingEnabled": false
+          }
+        },
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "logConsent",
+              "description": "Log GDPR consent",
+              "parameters": {
+                "consentGiven": "boolean",
+                "consentType": "string",
+                "phoneNumber": "string"
+              }
+            }
+          }
+        ],
+        "maxDuration": 60,
+        "exitConditions": [
+          "consent_received",
+          "timeout"
+        ]
+      }
+    },
+    {
+      "id": "step_2_bant_qualifier",
+      "name": "BANT Qualifier Agent",
+      "type": "conversation",
+      "description": "Collect BANT criteria: Budget, Authority, Need, Timeline",
+      "config": {
+        "systemPrompt": "Du bist Anna, BANT-Qualifier bei Everlast Consulting. Erfasse natürlich im Gespräch: Budget, Authority, Need, Timeline. Stelle nie alle Fragen auf einmal. Integriere sie natürlich in den Dialog.",
+        "bantQuestions": {
+          "budget": [
+            "Haben Sie aktuell Budget für KI-Projekte eingeplant?",
+            "In welcher Größenordnung investieren Sie in Digitalisierung?"
+          ],
+          "authority": [
+            "Sind Sie für KI-Entscheidungen in Ihrem Unternehmen zuständig?",
+            "Wer wäre bei einer Umsetzung involviert?"
+          ],
+          "need": [
+            "Was hat Sie besonders an unserer Case Study interessiert?",
+            "Wo verlieren Sie aktuell die meiste Zeit?"
+          ],
+          "timeline": [
+            "Wann würden Sie gerne mit der Umsetzung starten?",
+            "Gibt es einen konkreten Anlass oder Termindruck?"
+          ]
+        },
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "qualifyLead",
+              "description": "Qualifiziert einen Lead nach BANT-Kriterien",
+              "parameters": {
+                "budget": "enum:Ja,Nein,Unklar",
+                "authority": "enum:Entscheider,Einfluss,Keine Entscheidungsbefugnis",
+                "need": "enum:Hoch,Mittel,Niedrig,Kein Bedarf",
+                "timeline": "enum:Sofort,1-3 Monate,3-6 Monate,> 6 Monate,Unklar",
+                "companySize": "enum:1-10,11-50,51-200,201-500,500+",
+                "currentTools": "string",
+                "specificNeed": "string"
+              }
+            }
+          }
+        ],
+        "successCriteria": {
+          "minBantFields": 3,
+          "orConditions": [
+            "need == 'Hoch' || need == 'Mittel'",
+            "budget == 'Ja'"
+          ]
+        },
+        "transitions": [
+          {
+            "condition": "objection_detected",
+            "target": "step_3_objection_handler"
+          },
+          {
+            "condition": "bant_complete AND lead_score >= B",
+            "target": "step_4_closer_booking"
+          },
+          {
+            "condition": "bant_complete AND lead_score < B",
+            "target": "step_5_summary"
+          }
+        ],
+        "maxDuration": 180,
+        "exitConditions": [
+          "bant_complete",
+          "objection_detected",
+          "timeout",
+          "user_ends_call"
+        ]
+      }
+    },
+    {
+      "id": "step_3_objection_handler",
+      "name": "Objection Handler",
+      "type": "conversation",
+      "description": "Handle objections professionally with LAER framework",
+      "config": {
+        "systemPrompt": "Du bist Anna, Objection Handler bei Everlast Consulting. Behandle Einwände mit dem LAER-Framework: Listen, Acknowledge, Explore, Respond. Sei niemals defensiv.",
+        "objectionTypes": {
+          "preis": {
+            "patterns": ["zu teuer", "kein Budget", "können wir uns nicht leisten", "Preis", "Kosten"],
+            "response": "Das verstehe ich vollkommen. Viele unserer Kunden hatten anfangs ähnliche Bedenken. Was wir sehen: Die Amortisation erfolgt typischerweise in 8-12 Wochen."
+          },
+          "zeit": {
+            "patterns": ["keine Zeit", "gerade nicht", "rufen Sie später an", "busy"],
+            "response": "Selbstverständlich. Wann wäre ein besserer Zeitpunkt? Ich kann auch direkt einen Termin reservieren."
+          },
+          "nicht_entcheider": {
+            "patterns": ["muss mit meinem Chef sprechen", "nicht meine Entscheidung", "GF", "Geschäftsführer"],
+            "response": "Völlig verständlich. Dürfen Sie mir kurz sagen, was Ihren Geschäftsführer besonders interessiert?"
+          },
+          "bereits_loesung": {
+            "patterns": ["haben schon", "nutzen bereits", "ChatGPT", "andere Lösung"],
+            "response": "Das ist großartig! Viele unserer Kunden ergänzen ihre bestehenden Tools. Was genau nutzen Sie aktuell?"
+          },
+          "kein_bedarf": {
+            "patterns": ["nicht interessiert", "kein Bedarf", "brauchen wir nicht"],
+            "response": "Verstehe. Dürfen ich kurz fragen: Was läuft bei Ihnen so gut, dass KI keine Rolle spielt?"
+          },
+          "misstrauen": {
+            "patterns": ["Roboter", "KI ist doch nur Hype", "funktioniert nicht"],
+            "response": "Das ist berechtigt. Deshalb haben wir unsere Case Studies veröffentlicht. Wie wäre es mit einem unverbindlichen Erstgespräch?"
+          }
+        },
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "recordObjection",
+              "description": "Zeichnet einen Einwand auf",
+              "parameters": {
+                "objectionType": "enum:Preis,Zeit,Nicht-Entscheider,Bereits-Lösung,Kein-Bedarf,Misstrauen,Andere",
+                "objectionText": "string",
+                "responseGiven": "string",
+                "outcome": "enum:Überwunden,Nicht überwunden,Offen"
+              }
+            }
+          }
+        ],
+        "successCriteria": {
+          "objectionOvercome": true
+        },
+        "transitions": [
+          {
+            "condition": "objection_overcome",
+            "target": "step_2_bant_qualifier"
+          },
+          {
+            "condition": "objection_not_overcome AND bant_complete",
+            "target": "step_5_summary"
+          },
+          {
+            "condition": "user_insists_on_ending",
+            "target": "step_5_summary"
+          }
+        ],
+        "maxDuration": 120,
+        "maxRetries": 2
+      }
+    },
+    {
+      "id": "step_4_closer_booking",
+      "name": "Closer + Calendly Booking",
+      "type": "conversation",
+      "description": "Close the deal and book appointment in Calendly",
+      "config": {
+        "systemPrompt": "Du bist Anna, Termin-Manager bei Everlast Consulting. Buche qualifizierte Leads zu einem Demo-Termin. Sei enthusiastisch aber professionell.",
+        "closingTechniques": [
+          "alternative_close",
+          "assumptive_close",
+          "summary_close"
+        ],
+        "calendlyConfig": {
+          "eventTypeUri": "${CALENDLY_EVENT_TYPE_URI}",
+          "duration": 30,
+          "timezone": "Europe/Berlin",
+          "availableDays": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "availableHours": {
+            "start": "09:00",
+            "end": "17:00"
+          }
+        },
+        "bookingScript": [
+          "Wären Sie offen für einen kurzen Demo-Termin?",
+          "Wann würde es Ihnen passen - eher morgens oder nachmittags?",
+          "Ich habe noch einen Slot frei: {date} um {time}. Passt das?",
+          "Perfekt! Darf ich Ihre E-Mail für die Bestätigung?"
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "checkAvailability",
+              "description": "Prüft verfügbare Terminslots",
+              "parameters": {
+                "date": "string (YYYY-MM-DD)",
+                "timePreference": "enum:Morgens,Mittags,Nachmittags,Abends"
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "bookAppointment",
+              "description": "Bucht einen Termin im Calendly",
+              "parameters": {
+                "name": "string",
+                "email": "string",
+                "date": "string (YYYY-MM-DD)",
+                "time": "string (HH:MM)",
+                "phone": "string",
+                "company": "string",
+                "notes": "string"
+              }
+            }
+          }
+        ],
+        "successCriteria": {
+          "appointmentBooked": true
+        },
+        "fallbackOptions": [
+          {
+            "condition": "no_slots_available",
+            "action": "offer_callback",
+            "message": "Leider sind alle Slots belegt. Ich rufe Sie am {date} an - passt das?"
+          },
+          {
+            "condition": "user_declines_booking",
+            "action": "offer_callback_later",
+            "target": "step_5_summary"
+          }
+        ],
+        "transitions": [
+          {
+            "condition": "appointment_booked",
+            "target": "step_5_summary"
+          },
+          {
+            "condition": "booking_declined",
+            "target": "step_5_summary"
+          }
+        ],
+        "maxDuration": 120
+      }
+    },
+    {
+      "id": "step_5_summary",
+      "name": "Summary + DSGVO Logger",
+      "type": "function",
+      "description": "Create call summary and log all data",
+      "config": {
+        "systemPrompt": "Erstelle eine Gesprächszusammenfassung und speichere alle Daten DSGVO-konform.",
+        "summaryTemplate": {
+          "callOutcome": "enum:Termin gebucht,Rückruf vereinbart,Nicht interessiert,Nicht erreicht,Abgebrochen",
+          "leadScore": "enum:A,B,C,N",
+          "bantSummary": {
+            "budget": "string",
+            "authority": "string",
+            "need": "string",
+            "timeline": "string"
+          },
+          "objectionsEncountered": "array",
+          "nextSteps": "string",
+          "notes": "string"
+        },
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "endCallSummary",
+              "description": "Erstellt Gesprächs-Summary",
+              "parameters": {
+                "callOutcome": "enum:Termin gebucht,Rückruf vereinbart,Nicht interessiert,Nicht erreicht,Abgebrochen",
+                "leadScore": "enum:A,B,C,N",
+                "nextSteps": "string",
+                "notes": "string"
+              }
+            }
+          }
+        ],
+        "dataRetention": {
+          "recordingRetentionDays": 730,
+          "dataRetentionDays": 730,
+          "gdprCompliant": true,
+          "region": "EU"
+        },
+        "finalMessage": "Vielen Dank für das Gespräch! Ich wünsche Ihnen einen schönen Tag. Auf Wiederhören!",
+        "endCall": true
+      }
+    }
+  ],
+  "globalSettings": {
+    "language": "de",
+    "voice": {
+      "provider": "11labs",
+      "voiceId": "Matilda",
+      "model": "eleven_multilingual_v2"
+    },
+    "transcriber": {
+      "provider": "deepgram",
+      "model": "nova-2",
+      "language": "de"
+    },
+    "maxCallDuration": 600,
+    "silenceTimeout": 30,
+    "sentimentAnalysis": true,
+    "emotionRecognition": true
+  },
+  "errorHandling": {
+    "onError": "transfer_to_human",
+    "fallbackMessage": "Ich verbinde Sie mit einem Kollegen, einen Moment bitte.",
+    "maxRetries": 3
+  }
+}

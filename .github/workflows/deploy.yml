@@ -1,0 +1,116 @@
+name: Deploy Everlast Voice Agent
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Railway
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd api
+          railway link --project everlast-voice-agent
+          railway variables set \
+            VAPI_API_KEY="${{ secrets.VAPI_API_KEY }}" \
+            SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            SUPABASE_SERVICE_KEY="${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
+            CALENDLY_API_KEY="${{ secrets.CALENDLY_API_KEY }}" \
+            ENVIRONMENT="production" \
+            CHECKPOINTER_BACKEND="supabase"
+          railway up --detach
+
+  deploy-dashboard:
+    name: Deploy Dashboard to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          cd dashboard
+          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy-database:
+    name: Push Supabase Schema
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Push schema
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          supabase db push
+
+  import-vapi:
+    name: Import Vapi Assistant
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Railway URL
+        id: railway-url
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd api
+          npm install -g @railway/cli
+          railway link --project everlast-voice-agent
+          URL=$(railway domain)
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Update Assistant JSON
+        run: |
+          sed -i "s|https://everlast-api.railway.app|${{ steps.railway-url.outputs.url }}|g" vapi/assistant.json
+
+      - name: Import Vapi Assistant
+        run: |
+          curl -X POST https://api.vapi.ai/assistant \
+            -H "Authorization: Bearer ${{ secrets.VAPI_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d @vapi/assistant.json

@@ -1,0 +1,270 @@
+{
+  "name": "Everlast Anna - Lead Qualification",
+  "model": {
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-20241022",
+    "temperature": 0.7,
+    "maxTokens": 1024,
+    "emotionRecognitionEnabled": true,
+    "messages": [
+      {
+        "role": "system",
+        "content": "Du bist Anna, eine freundliche und professionelle Mitarbeiterin von Everlast Consulting. Du führst natürliche Telefongespräche auf Deutsch mit Geschäftsführern von KMU-Unternehmen. Dein Ziel ist es, deren Bedarf an KI-Beratung zu verstehen und qualifizierte Demo-Termeine zu buchen. Du sprichst perfektes Hochdeutsch mit warmer, professioneller Stimme. Du reagierst flexibel auf Gesprächsverläufe und stellst Rückfragen. Wichtig: Du bist kein Roboter, sondern eine echte Gesprächspartnerin."
+      }
+    ]
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "Matilda",
+    "model": "eleven_multilingual_v2",
+    "stability": 0.5,
+    "similarityBoost": 0.75,
+    "optimizeStreamingLatency": 3
+  },
+  "firstMessage": "Guten Tag, hier ist Anna von Everlast Consulting. Ich rufe an, weil Sie sich unsere Case Study zur Lead-Reaktivierung angesehen haben. Haben Sie zwei Minuten Zeit für ein kurzes Gespräch?",
+  "server": {
+    "url": "https://everlast-voice-agent-production.up.railway.app/vapi/webhook",
+    "timeoutSeconds": 30,
+    "secret": "{{VAPI_SERVER_SECRET}}"
+  },
+  "endCallPhrases": [
+    "Auf Wiederhören",
+    "Schönen Tag noch",
+    "Danke für das Gespräch",
+    "Bis bald"
+  ],
+  "recordingEnabled": true,
+  "hipaaEnabled": false,
+  "silenceTimeoutSeconds": 30,
+  "maxDurationSeconds": 600,
+  "backgroundSound": "office",
+  "backchannelingEnabled": true,
+  "backgroundDenoisingEnabled": true,
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "de",
+    "smartFormat": true,
+    "endpointing": 250
+  },
+  "startSpeakingPlan": {
+    "waitSeconds": 0.4,
+    "smartEndpointingEnabled": true
+  },
+  "stopSpeakingPlan": {
+    "numWords": 2,
+    "voiceSeconds": 0.3
+  },
+  "functions": [
+    {
+      "name": "qualifyLead",
+      "description": "Qualifiziert einen Lead nach BANT-Kriterien und speichert die Daten",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "budget": {
+            "type": "string",
+            "enum": ["Ja", "Nein", "Unklar"],
+            "description": "Hat das Unternehmen Budget für KI-Beratung?"
+          },
+          "authority": {
+            "type": "string",
+            "enum": ["Entscheider", "Einfluss", "Keine Entscheidungsbefugnis"],
+            "description": "Ist der Gesprächspartner Entscheider?"
+          },
+          "need": {
+            "type": "string",
+            "enum": ["Hoch", "Mittel", "Niedrig", "Kein Bedarf"],
+            "description": "Konkreter Bedarf an KI/Automatisierung?"
+          },
+          "timeline": {
+            "type": "string",
+            "enum": ["Sofort", "1-3 Monate", "3-6 Monate", "> 6 Monate", "Unklar"],
+            "description": "Wann soll umgesetzt werden?"
+          },
+          "companySize": {
+            "type": "string",
+            "enum": ["1-10", "11-50", "51-200", "201-500", "500+"],
+            "description": "Unternehmensgröße in Mitarbeitern"
+          },
+          "currentTools": {
+            "type": "string",
+            "description": "Aktuell genutzte Tools/Software"
+          },
+          "specificNeed": {
+            "type": "string",
+            "description": "Spezifischer Bedarf/Beschreibung"
+          }
+        },
+        "required": ["budget", "authority", "need", "timeline"]
+      }
+    },
+    {
+      "name": "checkAvailability",
+      "description": "Prüft verfügbare Terminslots im Kalender",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Datum im Format YYYY-MM-DD"
+          },
+          "timePreference": {
+            "type": "string",
+            "enum": ["Morgens", "Mittags", "Nachmittags", "Abends"],
+            "description": "Tageszeit-Präferenz"
+          }
+        }
+      }
+    },
+    {
+      "name": "bookAppointment",
+      "description": "Bucht einen Demo-Termin im Calendly",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name des Gesprächspartners"
+          },
+          "email": {
+            "type": "string",
+            "description": "E-Mail-Adresse"
+          },
+          "date": {
+            "type": "string",
+            "description": "Datum im Format YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "description": "Uhrzeit im Format HH:MM"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Telefonnummer"
+          },
+          "company": {
+            "type": "string",
+            "description": "Firmenname"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notizen zum Gespräch"
+          }
+        },
+        "required": ["name", "email", "date", "time"]
+      }
+    },
+    {
+      "name": "recordObjection",
+      "description": "Zeichnet einen Einwand auf für spätere Analyse",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "objectionType": {
+            "type": "string",
+            "enum": ["Preis", "Zeit", "Nicht-Entscheider", "Bereits-Lösung", "Kein-Bedarf", "Misstrauen", "Andere"],
+            "description": "Art des Einwands"
+          },
+          "objectionText": {
+            "type": "string",
+            "description": "Wortlaut des Einwands"
+          },
+          "responseGiven": {
+            "type": "string",
+            "description": "Gegebene Antwort"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": ["Überwunden", "Nicht überwunden", "Offen"],
+            "description": "Ergebnis der Einwandbehandlung"
+          }
+        },
+        "required": ["objectionType"]
+      }
+    },
+    {
+      "name": "logConsent",
+      "description": "Protokolliert DSGVO-Consent",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "consentGiven": {
+            "type": "boolean",
+            "description": "Wurde Consent erteilt?"
+          },
+          "consentType": {
+            "type": "string",
+            "enum": ["Aufzeichnung", "Datenverarbeitung", "Marketing"],
+            "description": "Art des Consent"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Telefonnummer des Anrufers"
+          }
+        },
+        "required": ["consentGiven", "consentType"]
+      }
+    },
+    {
+      "name": "updateSentiment",
+      "description": "Aktualisiert Sentiment-Analyse basierend auf Deepgram-Daten",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sentiment": {
+            "type": "string",
+            "enum": ["positiv", "neutral", "negativ", "frustriert", "begeistert"],
+            "description": "Erkanntes Sentiment"
+          },
+          "score": {
+            "type": "number",
+            "description": "Sentiment-Score von -1.0 bis 1.0"
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Konfidenz der Erkennung (0-1)"
+          },
+          "ttsAdjustments": {
+            "type": "object",
+            "description": "TTS-Parameter-Anpassungen basierend auf Sentiment"
+          }
+        },
+        "required": ["sentiment", "score"]
+      }
+    },
+    {
+      "name": "endCallSummary",
+      "description": "Erstellt Gesprächs-Summary beim Auflegen",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "callOutcome": {
+            "type": "string",
+            "enum": ["Termin gebucht", "Rückruf vereinbart", "Nicht interessiert", "Nicht erreicht", "Abgebrochen"],
+            "description": "Ergebnis des Calls"
+          },
+          "leadScore": {
+            "type": "string",
+            "enum": ["A", "B", "C", "N"],
+            "description": "Lead-Score: A=Heiß, B=Warm, C=Kalt, N=Nicht qualifiziert"
+          },
+          "nextSteps": {
+            "type": "string",
+            "description": "Nächste Schritte"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Gesprächsnotizen"
+          },
+          "sentimentTrend": {
+            "type": "string",
+            "enum": ["verbessert", "gleich", "verschlechtert"],
+            "description": "Sentiment-Entwicklung während des Gesprächs"
+          }
+        },
+        "required": ["callOutcome", "leadScore"]
+      }
+    }
+  ]
+}

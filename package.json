@@ -1,0 +1,18 @@
+{
+  "name": "everlast-voice-agent",
+  "private": true,
+  "workspaces": [
+    "api",
+    "dashboard"
+  ],
+  "scripts": {
+    "dev:api": "cd api && uvicorn main:app --reload",
+    "dev:dashboard": "cd dashboard && npm run dev",
+    "build": "cd dashboard && npm run build",
+    "test": "cd api && pytest && cd ../dashboard && npm test",
+    "lint": "cd api && flake8 . && cd ../dashboard && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
