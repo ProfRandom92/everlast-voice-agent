@@ -21,13 +21,39 @@ _current_dir = os.path.dirname(os.path.abspath(__file__))
 if _current_dir not in sys.path:
     sys.path.insert(0, _current_dir)
 
+# Import directly from files to avoid package name conflicts
 try:
-    from everlast_agents.agent_system import process_message, end_conversation, get_conversation_history, clear_conversation
-    from everlast_agents.state import create_initial_state, analyze_sentiment, SentimentState
-    from everlast_agents.checkpointer import get_checkpointer, BaseCheckpointer
-    print("LangGraph imported successfully from everlast_agents")
-except ImportError as e:
-    print(f"LangGraph import error: {e}")
+    # Use importlib to import modules directly
+    import importlib.util
+
+    def load_module_from_file(module_name, file_path):
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        return module
+
+    # Load modules directly from files
+    _agents_dir = os.path.join(_current_dir, 'everlast_agents')
+
+    state_module = load_module_from_file('everlast_agents.state', os.path.join(_agents_dir, 'state.py'))
+    checkpointer_module = load_module_from_file('everlast_agents.checkpointer', os.path.join(_agents_dir, 'checkpointer.py'))
+    agent_system_module = load_module_from_file('everlast_agents.agent_system', os.path.join(_agents_dir, 'agent_system.py'))
+
+    # Extract functions/classes from modules
+    process_message = agent_system_module.process_message
+    end_conversation = agent_system_module.end_conversation
+    get_conversation_history = agent_system_module.get_conversation_history
+    clear_conversation = agent_system_module.clear_conversation
+    create_initial_state = state_module.create_initial_state
+    analyze_sentiment = state_module.analyze_sentiment
+    SentimentState = state_module.SentimentState
+    get_checkpointer = checkpointer_module.get_checkpointer
+    BaseCheckpointer = checkpointer_module.BaseCheckpointer
+
+    print("LangGraph loaded successfully from everlast_agents files")
+except Exception as e:
+    print(f"LangGraph load error: {e}")
     import traceback
     traceback.print_exc()
     raise
