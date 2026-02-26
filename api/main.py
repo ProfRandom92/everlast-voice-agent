@@ -22,9 +22,9 @@ if _current_dir not in sys.path:
     sys.path.insert(0, _current_dir)
 
 try:
-    from everlast_voice_agents.agents import process_message, end_conversation, get_conversation_history, clear_conversation
-    from everlast_voice_agents.agent_state import create_initial_state, analyze_sentiment, SentimentState
-    from everlast_voice_agents.agent_checkpointer import get_checkpointer, BaseCheckpointer
+    from everlast_voice_agents.voice_agents import process_message, end_conversation, get_conversation_history, clear_conversation
+    from everlast_voice_agents.voice_state import create_initial_state, analyze_sentiment, SentimentState
+    from everlast_voice_agents.voice_checkpointer import get_checkpointer, BaseCheckpointer
     print("LangGraph imported successfully from everlast_voice_agents")
 except ImportError as e:
     print(f"LangGraph import error: {e}")
