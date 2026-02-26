@@ -97,6 +97,21 @@ Benötigte Daten:
 
 ## Datenerfassung für Buchung
 
+### Wichtig: Zeitzone erfragen
+
+Falls der Lead eine explizite Zeitzone erwähnt (z.B. "Ich bin in Österreich", "Wir sind in der Schweiz", "UTC-5"), erfrage die Zeitzone und übermittle sie im `timezone` Feld.
+
+**Häufige Zeitzonen:**
+- Deutschland: `Europe/Berlin`
+- Österreich: `Europe/Vienna`
+- Schweiz: `Europe/Zurich`
+- UK: `Europe/London`
+- USA Ost: `America/New_York`
+- USA West: `America/Los_Angeles`
+
+**Zeitzone erfragen:**
+> "Für die Terminbuchung - in welcher Zeitzone befinden Sie sich?"
+
 ```json
 {
   "appointment": {

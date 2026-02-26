@@ -32,13 +32,23 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - configure for production
+allowed_origins = [
+    "http://localhost:3000",  # Local development
+    "https://everlast-dashboard.vercel.app",  # Production dashboard
+]
+
+# Add additional origins from environment if specified
+additional_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if additional_origins:
+    allowed_origins.extend([origin.strip() for origin in additional_origins.split(",")])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-Vapi-Secret"],
 )
 
 # ============================================================================
@@ -85,6 +95,7 @@ class CalendlyBookingRequest(BaseModel):
     phone: Optional[str] = None
     company: Optional[str] = None
     notes: Optional[str] = None
+    timezone: Optional[str] = "Europe/Berlin"  # Optional timezone parameter
 
 class LeadQualificationData(BaseModel):
     budget: Literal["Ja", "Nein", "Unklar"]
@@ -137,12 +148,15 @@ def save_to_supabase(table: str, data: dict):
     return None
 
 async def book_calendly_appointment(data: CalendlyBookingRequest) -> dict:
-    """Book appointment via Calendly API"""
+    """Book appointment via Calendly API with dynamic timezone"""
     if not CALENDLY_API_KEY:
         return {"error": "Calendly API key not configured"}
 
     # Format start time
     start_time = f"{data.date}T{data.time}:00"
+
+    # Use provided timezone or default to Europe/Berlin
+    timezone = data.timezone or "Europe/Berlin"
 
     headers = {
         "Authorization": f"Bearer {CALENDLY_API_KEY}",
@@ -152,7 +166,7 @@ async def book_calendly_appointment(data: CalendlyBookingRequest) -> dict:
     payload = {
         "event_type": CALENDLY_EVENT_TYPE_URI,
         "start_time": start_time,
-        "timezone": "Europe/Berlin",
+        "timezone": timezone,
         "invitee": {
             "email": data.email,
             "first_name": data.name.split()[0] if data.name else "",
@@ -167,6 +181,10 @@ async def book_calendly_appointment(data: CalendlyBookingRequest) -> dict:
             {
                 "question": "Notizen",
                 "answer": data.notes or ""
+            },
+            {
+                "question": "Zeitzone",
+                "answer": timezone
             }
         ]
     }
@@ -212,6 +230,15 @@ async def vapi_webhook(request: Request, background_tasks: BackgroundTasks):
     Supports checkpointing for return callers (thread_id = phone_number).
     """
     try:
+        # Verify Vapi webhook secret if configured
+        if VAPI_SECRET:
+            vapi_secret_header = request.headers.get("x-vapi-secret")
+            if not vapi_secret_header or vapi_secret_header != VAPI_SECRET:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Unauthorized: Invalid or missing webhook secret"
+                )
+
         payload = await request.json()
 
         # Extract conversation info
@@ -432,7 +459,9 @@ async def end_call(request: CallSummaryRequest, conversation_id: str):
     if not state:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    final_state = end_conversation(state)
+    # Get phone number from state for checkpointing
+    phone_number = state.get("phone_number", "unknown")
+    final_state = await end_conversation(state, phone_number)
     conversation_states[conversation_id] = final_state
 
     data = {

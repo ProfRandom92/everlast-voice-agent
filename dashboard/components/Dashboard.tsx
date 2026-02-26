@@ -34,12 +34,6 @@ import {
   Filter
 } from 'lucide-react'
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 // Types
 interface CallStats {
   total_calls: number
@@ -69,7 +63,40 @@ interface ObjectionStats {
   total: number
 }
 
+// Hook to safely initialize Supabase client
+function useSupabaseClient() {
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Only initialize on client side
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        setError('Supabase configuration missing')
+        console.error('Supabase URL or Key not configured')
+        return
+      }
+
+      const client = createClient(supabaseUrl, supabaseKey)
+      setSupabase(client)
+    } catch (err) {
+      setError('Failed to initialize Supabase')
+      console.error('Supabase initialization error:', err)
+    }
+  }, [])
+
+  return { supabase, error }
+}
+
 export default function Dashboard() {
+  const { supabase, error: supabaseError } = useSupabaseClient()
   const [stats, setStats] = useState<CallStats | null>(null)
   const [leadDist, setLeadDist] = useState<LeadDistribution | null>(null)
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([])
@@ -78,6 +105,14 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('7')
 
   useEffect(() => {
+    // Only fetch data when supabase client is initialized
+    if (!supabase) {
+      if (supabaseError) {
+        setLoading(false)
+      }
+      return
+    }
+
     fetchDashboardData()
 
     // Subscribe to real-time updates
@@ -91,10 +126,15 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [timeRange])
+  }, [timeRange, supabase, supabaseError])
 
   async function fetchDashboardData() {
     try {
+      if (!supabase) {
+        console.warn('Supabase client not initialized')
+        return
+      }
+
       setLoading(true)
 
       // Fetch conversion stats
@@ -244,7 +284,13 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {loading ? (
+        {supabaseError ? (
+          <div className="flex flex-col items-center justify-center h-64 text-red-600">
+            <AlertCircle className="w-12 h-12 mb-4" />
+            <p className="text-lg font-medium">{supabaseError}</p>
+            <p className="text-sm text-gray-500 mt-2">Bitte überprüfen Sie Ihre Umgebungsvariablen</p>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-everlast-600"></div>
           </div>
