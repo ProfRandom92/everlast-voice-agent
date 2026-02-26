@@ -65,7 +65,7 @@ interface ObjectionStats {
 
 // Hook to safely initialize Supabase client
 function useSupabaseClient() {
-  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+  const [supabase, setSupabase] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
