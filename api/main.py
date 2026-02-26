@@ -22,9 +22,9 @@ if _current_dir not in sys.path:
     sys.path.insert(0, _current_dir)
 
 try:
-    from agent_system import process_message, end_conversation, get_conversation_history, clear_conversation
-    from state import create_initial_state, analyze_sentiment, SentimentState
-    from checkpointer import get_checkpointer, BaseCheckpointer
+    from agents import process_message, end_conversation, get_conversation_history, clear_conversation
+    from agent_state import create_initial_state, analyze_sentiment, SentimentState
+    from agent_checkpointer import get_checkpointer, BaseCheckpointer
     print("LangGraph imported successfully from local modules")
 except ImportError as e:
     print(f"LangGraph import error: {e}")
