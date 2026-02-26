@@ -13,14 +13,14 @@ import os
 from datetime import datetime
 from pydantic import BaseModel
 
-# Import state definitions and checkpointer
-from agent_state import (
+# Import state definitions and checkpointer (relative imports within package)
+from .agent_state import (
     AgentState, BANTState, CompanyInfo, ConsentState,
     ObjectionRecord, AppointmentState, CallMetadata,
     SentimentState, GuardrailsState, analyze_sentiment,
     calculate_lead_score, create_initial_state
 )
-from agent_checkpointer import get_checkpointer, BaseCheckpointer
+from .agent_checkpointer import get_checkpointer, BaseCheckpointer
 
 # ============================================================================
 # CHECKPOINTER SETUP

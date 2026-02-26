@@ -12,37 +12,20 @@ import uuid
 from datetime import datetime
 import httpx
 
-# Import LangGraph components (from local modules) - LAZY IMPORT to avoid conflicts
+# Import LangGraph components (from local everlast_voice_agents package)
 import sys
 import os
 
-# Add current directory to path for local imports (at the beginning)
+# Add current directory to path for local imports
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 if _current_dir not in sys.path:
     sys.path.insert(0, _current_dir)
 
-# Remove any cached langgraph modules to avoid conflicts
-modules_to_remove = [k for k in sys.modules.keys() if k.startswith('langgraph')]
-for mod in modules_to_remove:
-    del sys.modules[mod]
-
-# Now import our local modules (renamed to avoid conflict with official langgraph package)
 try:
-    import agents as _agents_module
-    import agent_state as _agent_state_module
-    import agent_checkpointer as _agent_checkpointer_module
-
-    process_message = _agents_module.process_message
-    end_conversation = _agents_module.end_conversation
-    get_conversation_history = _agents_module.get_conversation_history
-    clear_conversation = _agents_module.clear_conversation
-    create_initial_state = _agent_state_module.create_initial_state
-    analyze_sentiment = _agent_state_module.analyze_sentiment
-    SentimentState = _agent_state_module.SentimentState
-    get_checkpointer = _agent_checkpointer_module.get_checkpointer
-    BaseCheckpointer = _agent_checkpointer_module.BaseCheckpointer
-
-    print("LangGraph modules imported successfully")
+    from everlast_voice_agents.agents import process_message, end_conversation, get_conversation_history, clear_conversation
+    from everlast_voice_agents.agent_state import create_initial_state, analyze_sentiment, SentimentState
+    from everlast_voice_agents.agent_checkpointer import get_checkpointer, BaseCheckpointer
+    print("LangGraph imported successfully from everlast_voice_agents")
 except ImportError as e:
     print(f"LangGraph import error: {e}")
     import traceback
