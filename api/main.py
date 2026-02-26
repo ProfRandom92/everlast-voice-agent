@@ -15,7 +15,11 @@ import httpx
 # Import LangGraph components (from local everlast_agents folder)
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Add current directory to path for local imports
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
 
 try:
     from everlast_agents.agent_system import process_message, end_conversation, get_conversation_history, clear_conversation
