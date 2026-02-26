@@ -1,6 +1,7 @@
 # 🤖 Everlast Voice Agent
 
 [![Everlast](https://img.shields.io/badge/Everlast-Consulting-blue.svg)]()
+[![Challenge](https://img.shields.io/badge/Challenge-2026-gold.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com)
@@ -12,15 +13,41 @@
 >
 > **Für:** [Everlast Consulting](https://everlast.consulting) | **Challenge:** Voice Agent Implementation 2026
 
+---
+
+## 🎬 Showcase Video
+
+![Everlast Voice Agent Showcase](showcase.gif)
+
+*Animierte Demo des Voice Agents mit BANT-Qualifizierung und Live-Sentiment-Analysis*
+
+---
+
+## 🎬 Live Demo
+
+```mermaid
+graph LR
+    A[📞 Anrufer] -->|"Guten Tag"| B[🤖 Anna]
+    B -->|"Haben Sie 2 Minuten?"| A
+    A -->|"Ja, ich bin interessiert"| B
+    B -->|BANT-Qualifizierung| C[(💾 Speichern)]
+    C -->|Score: A| D[📅 Termin buchen]
+    D -->|Bestätigung| A
+```
+
+---
+
+## 🏗️ System Architecture
+
 ```mermaid
 graph TB
-    subgraph "Voice Layer"
+    subgraph "📱 Voice Layer"
         VAPI[Vapi Platform]
         STT[Deepgram Nova-2]
         TTS[ElevenLabs Matilda]
     end
 
-    subgraph "AI Brain"
+    subgraph "🧠 AI Brain"
         SUP[Supervisor<br/>Claude 4]
         BANT[BANT Qualifier]
         OBJ[Objection Handler]
@@ -28,7 +55,7 @@ graph TB
         DSG[DSGVO Logger]
     end
 
-    subgraph "Data Layer"
+    subgraph "💾 Data Layer"
         SB[(Supabase EU)]
         CALAPI[Calendly API]
     end
@@ -45,19 +72,13 @@ graph TB
     DSG --> SB
 ```
 
-## ✨ Features
+---
 
-### 🎯 Core Capabilities
-- **Natürliche Gesprächsführung** - Kontextuelles Verständnis, Rückfragen, kein starres Skript
-- **BANT-Qualifizierung** - Budget, Authority, Need, Timeline + Unternehmensspezifische Kriterien
-- **Objection-Handling** - Professionelle Einwandbehandlung mit deutschen Sales-Patterns
-- **Automatische Terminbuchung** - Direkte Calendly-Integration
-- **DSGVO-Compliance** - Consent-Management, EU-Region, Zero-Retention
+## 🧩 Multi-Agent Architecture
 
-### 🧠 AI Architecture
 ```mermaid
 flowchart TB
-    subgraph "Supervisor Agent"
+    subgraph "🎯 Supervisor Agent"
         S[Claude 4 Supervisor]
         S -->|Route| A1
         S -->|Route| A2
@@ -65,14 +86,14 @@ flowchart TB
         S -->|Route| A4
     end
 
-    subgraph "Specialized Agents"
+    subgraph "🔧 Specialized Agents"
         A1[BANT Qualifier]
         A2[Objection Handler]
         A3[Calendly Booker]
         A4[DSGVO Logger]
     end
 
-    subgraph "State Management"
+    subgraph "💾 State Management"
         CP[(Checkpointer)]
         S <-->|Read/Write| CP
     end
@@ -84,13 +105,9 @@ flowchart TB
     style A4 fill:#6b7280,color:#fff
 ```
 
-### 📊 Real-time Dashboard
-- **Conversion Rate** - Live-Tracking der Terminbuchungsrate (Ziel: ≥35%)
-- **Lead-Scoring** - A/B/C-Verteilung qualifizierter Leads
-- **Gesprächsanalyse** - Ø Call-Dauer, Drop-off Points, Einwände
-- **Sentiment-Tracking** - Echtzeit-Emotionsanalyse
+---
 
-## 🏗️ Architecture
+## 🛠️ Tech Stack
 
 ```mermaid
 graph LR
@@ -125,6 +142,8 @@ graph LR
     F -->|Book| CL
     D -->|Query| SB
 ```
+
+---
 
 ## 🚀 Quick Start
 
@@ -168,12 +187,16 @@ supabase login
 supabase db push
 ```
 
+---
+
 ## 📖 Documentation
 
 - [Architecture](docs/architecture.md) - System architecture and data flow
 - [Deployment](DEPLOY.md) - Detailed deployment guide
 - [Demo Script](docs/demo-script.md) - Demo call script
 - [Test Scenarios](tests/scenarios.md) - 10 test scenarios
+
+---
 
 ## 🔧 Configuration
 
@@ -188,6 +211,8 @@ supabase db push
 | `CALENDLY_API_KEY` | Calendly API key | ✅ |
 | `ELEVENLABS_API_KEY` | ElevenLabs API key (optional) | ❌ |
 
+---
+
 ## 📊 Monitoring
 
 ### Health Check
@@ -198,6 +223,8 @@ curl https://everlast-voice-agent-production.up.railway.app/health
 ### Dashboard
 Access the real-time dashboard at: `https://everlast-dashboard.vercel.app`
 
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -206,9 +233,13 @@ Access the real-time dashboard at: `https://everlast-dashboard.vercel.app`
 4. Push to branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
 
 ## 🙏 Acknowledgments
 
@@ -223,6 +254,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **[⬆ Back to Top](#-everlast-voice-agent)**
 
-Made with ❤️ by the Everlast Team
+Made with ❤️ for the Everlast Challenge 2026
 
 </div>
