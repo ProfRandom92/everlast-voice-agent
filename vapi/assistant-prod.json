@@ -1,0 +1,317 @@
+{
+  "name": "Everlast Anna - Lead Qualification",
+  "description": "Production-ready AI Voice Assistant for lead qualification and appointment booking in German",
+  "language": "de",
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "Matilda",
+    "model": "eleven_multilingual_v2",
+    "settings": {
+      "stability": 0.5,
+      "similarityBoost": 0.75,
+      "style": 0.3,
+      "useSpeakerBoost": true,
+      "language": "de"
+    }
+  },
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "de",
+    "smartFormat": true,
+    "fillerWords": true,
+    "profanityFilter": false
+  },
+  "model": {
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-20241022",
+    "temperature": 0.7,
+    "maxTokens": 1024
+  },
+  "server": {
+    "url": "https://everlast-voice-agent-production.up.railway.app/vapi/webhook",
+    "timeoutSeconds": 30,
+    "secret": "${WEBHOOK_SECRET}",
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Environment": "production"
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "qualifyLead",
+        "description": "Qualifiziert einen Lead basierend auf den erfassten Informationen wie Budget, Zeitrahmen und Entscheidungsbefugnis",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "budget": {
+              "type": "string",
+              "description": "Verfügbares Budget des Interessenten"
+            },
+            "timeline": {
+              "type": "string",
+              "description": "Geplanter Zeitrahmen für den Kauf/Projektstart"
+            },
+            "decisionMaker": {
+              "type": "boolean",
+              "description": "Ist der Anrufer Entscheidungsberechtigt?"
+            },
+            "interestLevel": {
+              "type": "string",
+              "enum": ["hoch", "mittel", "niedrig"],
+              "description": "Eingeschätztes Interessenlevel"
+            },
+            "notes": {
+              "type": "string",
+              "description": "Zusätzliche Qualifizierungsnotizen"
+            }
+          },
+          "required": ["budget", "timeline", "decisionMaker", "interestLevel"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "bookAppointment",
+        "description": "Bucht einen Termin für einen qualifizierten Lead mit einem Vertriebsmitarbeiter",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "format": "date",
+              "description": "Gewünschtes Datum im Format YYYY-MM-DD"
+            },
+            "time": {
+              "type": "string",
+              "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
+              "description": "Gewünschte Uhrzeit im Format HH:MM"
+            },
+            "duration": {
+              "type": "integer",
+              "enum": [15, 30, 45, 60],
+              "description": "Dauer des Termins in Minuten"
+            },
+            "contactMethod": {
+              "type": "string",
+              "enum": ["Telefon", "Video", "Vor-Ort"],
+              "description": "Bevorzugte Kontaktmethode"
+            },
+            "notes": {
+              "type": "string",
+              "description": "Zusätzliche Terminnotizen"
+            }
+          },
+          "required": ["date", "time", "duration", "contactMethod"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "recordObjection",
+        "description": "Erfasst Einwände oder Bedenken des Interessenten für spätere Nachverfolgung",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "objectionType": {
+              "type": "string",
+              "enum": ["Preis", "Zeit", "Wettbewerb", "Bedarf", "Autorität", "Sonstiges"],
+              "description": "Kategorie des Einwands"
+            },
+            "description": {
+              "type": "string",
+              "description": "Detaillierte Beschreibung des Einwands"
+            },
+            "handled": {
+              "type": "boolean",
+              "description": "Wurde der Einwand erfolgreich behandelt?"
+            },
+            "response": {
+              "type": "string",
+              "description": "Gegebene Antwort auf den Einwand"
+            }
+          },
+          "required": ["objectionType", "description"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "logConsent",
+        "description": "Protokolliert die Einwilligung des Anrufers für rechtliche und datenschutzrechtliche Zwecke",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "consentType": {
+              "type": "string",
+              "enum": ["Aufzeichnung", "Datenverarbeitung", "Kontaktaufnahme", "Werbung"],
+              "description": "Art der eingeholten Einwilligung"
+            },
+            "granted": {
+              "type": "boolean",
+              "description": "Wurde die Einwilligung erteilt?"
+            },
+            "method": {
+              "type": "string",
+              "enum": ["Mündlich", "Tonwahl", "SMS-Bestätigung"],
+              "description": "Methode der Einwilligungserklärung"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Zeitpunkt der Einwilligung (ISO 8601)"
+            }
+          },
+          "required": ["consentType", "granted", "method", "timestamp"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "endCallSummary",
+        "description": "Erstellt eine Zusammenfassung des Gesprächs beim Beenden des Anrufs",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "callOutcome": {
+              "type": "string",
+              "enum": ["Termin vereinbart", "Lead qualifiziert", "Callback vereinbart", "Nicht interessiert", "Voicemail", "Abgebrochen"],
+              "description": "Ergebnis des Anrufs"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Zusammenfassung des Gesprächsverlaufs"
+            },
+            "nextSteps": {
+              "type": "string",
+              "description": "Geplante nächste Schritte"
+            },
+            "followUpRequired": {
+              "type": "boolean",
+              "description": "Ist ein Follow-up erforderlich?"
+            },
+            "followUpDate": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Geplantes Follow-up Datum (falls erforderlich)"
+            }
+          },
+          "required": ["callOutcome", "summary"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "updateSentiment",
+        "description": "Aktualisiert die Stimmungsanalyse während des Gesprächs",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "sentiment": {
+              "type": "string",
+              "enum": ["sehr_positiv", "positiv", "neutral", "negativ", "sehr_negativ"],
+              "description": "Aktuelle Stimmung des Anrufers"
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Konfidenzlevel der Stimmungseinschätzung"
+            },
+            "keyPhrases": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Schlüsselwörter oder Phrasen, die die Stimmung beeinflussen"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Zeitpunkt der Stimmungsaktualisierung"
+            }
+          },
+          "required": ["sentiment", "confidence", "timestamp"]
+        }
+      }
+    }
+  ],
+  "firstMessage": "Hallo! Hier ist Anna von Everlast. Ich freue mich, dass Sie sich für unsere Produkte interessieren. Darf ich Sie kurz ein paar Fragen stellen, um Ihnen das beste Angebot zu unterbreiten?",
+  "systemPrompt": "Du bist Anna, eine freundliche und professionelle Vertriebsassistentin von Everlast.\n\nDEINE AUFGABEN:\n1. Begrüße Anrufer herzlich und professionell\n2. Qualifiziere Leads durch gezielte Fragen zu Budget, Zeitrahmen und Entscheidungsbefugnis\n3. Buche Termine für qualifizierte Interessenten\n4. Erfasse Einwände und Bedenken für spätere Nachverfolgung\n5. Protokolliere Einwilligungen (DSGVO-konform)\n6. Aktualisiere die Stimmungsanalyse während des Gesprächs\n\nSPRACHSTIL:\n- Sprich natürlich und freundlich auf Deutsch\n- Verwenden Sie die Höflichkeitsform 'Sie'\n- Seien Sie geduldig und zuhörend\n- Vermeiden Sie Fachjargon, es sei denn, der Anrufer verwendet ihn\n- Stellen Sie eine Frage nach der anderen\n\nLEAD-QUALIFIZIERUNG:\n- Budget: Was ist das ungefähre Budget?\n- Zeitrahmen: Wann möchten Sie starten?\n- Entscheidungsbefugnis: Treffen Sie die Entscheidung selbst oder müssen Sie mit anderen abstimmen?\n\nBei qualifizierten Leads (hohes Interesse + Budget + kurzer Zeitrahmen): Bieten Sie direkt einen Termin an.\n\nBei Einwänden: Hören Sie zu, validieren Sie die Bedenken und versuchen Sie, passende Lösungen anzubieten.\n\nDSGVO-HINWEIS:\n- Holen Sie am Anfang die Einwilligung zur Gesprächsaufzeichnung ein\n- Erklären Sie, dass das Gespräch zu Qualitätssicherungszwecken aufgezeichnet wird",
+  "endCallFunctionEnabled": true,
+  "endCallFunction": {
+    "name": "endCallSummary",
+    "description": "Beendet das Gespräch mit einer Zusammenfassung"
+  },
+  "analysisPlan": {
+    "summaryPrompt": "Erstelle eine kurze Zusammenfassung des Gesprächs in 2-3 Sätzen auf Deutsch. Fasse das Hauptanliegen des Anrufers und das Gesprächsergebnis zusammen.",
+    "successEvaluationPrompt": "Bewerte, ob das Gespräch erfolgreich war:\n- Termin vereinbart: SEHR ERFOLGREICH\n- Lead qualifiziert: ERFOLGREICH\n- Callback vereinbart: ERFOLGREICH\n- Nur Informationen erhalten: TEILWEISE ERFOLGREICH\n- Abgelehnt: NICHT ERFOLGREICH",
+    "structuredDataPrompt": "Extrahiere folgende Daten im JSON-Format:\n{\n  'leadName': 'Name des Anrufers',\n  'company': 'Firmenname falls erwähnt',\n  'contactInfo': 'Telefon oder E-Mail',\n  'interest': 'Hauptinteresse/Produkt',\n  'budget': 'Budget-Angabe',\n  'timeline': 'Zeitrahmen',\n  'qualified': true/false,\n  'appointmentBooked': true/false,\n  'objections': ['Liste der Einwände'],\n  'sentiment': 'positiv/neutral/negativ'\n}",
+    "structuredDataSchema": {
+      "type": "object",
+      "properties": {
+        "leadName": { "type": "string" },
+        "company": { "type": "string" },
+        "contactInfo": { "type": "string" },
+        "interest": { "type": "string" },
+        "budget": { "type": "string" },
+        "timeline": { "type": "string" },
+        "qualified": { "type": "boolean" },
+        "appointmentBooked": { "type": "boolean" },
+        "objections": { "type": "array", "items": { "type": "string" } },
+        "sentiment": { "type": "string" }
+      }
+    }
+  },
+  "silenceTimeoutSeconds": 30,
+  "maxDurationSeconds": 600,
+  "backgroundSound": "office",
+  "backgroundDenoisingEnabled": true,
+  "backoffStrategy": {
+    "type": "exponential",
+    "maxRetries": 3,
+    "baseDelayMs": 1000
+  },
+  "recordingEnabled": true,
+  "hipaaEnabled": false,
+  "llmFallbackEnabled": true,
+  "llmFallbackConfig": {
+    "provider": "anthropic",
+    "model": "claude-3-haiku-20240307"
+  },
+  "transcriptionEndpointing": {
+    "onPunctuation": true,
+    "onSilence": {
+      "durationMs": 500,
+      "adaptive": true
+    }
+  },
+  "keywords": [
+    "Everlast",
+    "Termin",
+    "Budget",
+    "Preis",
+    "Angebot",
+    "Einwände",
+    "DSGVO",
+    "Einwilligung",
+    "Rückruf",
+    "Qualifizierung"
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "environment": "production",
+    "createdAt": "2026-02-27",
+    "language": "de-DE",
+    "timezone": "Europe/Berlin",
+    "industry": "sales",
+    "useCase": "lead-qualification"
+  }
+}
