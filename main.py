@@ -35,6 +35,14 @@ except ImportError as e:
 # Supabase client
 from supabase import create_client, Client
 
+# Import Calendly client
+try:
+    from calendly_client import CalendlyClient, CalendlyBookingResult, BookingStatus
+    CALENDLY_CLIENT_AVAILABLE = True
+except ImportError:
+    CALENDLY_CLIENT_AVAILABLE = False
+    print("Warning: calendly_client not available")
+
 # Initialize checkpointer
 CHECKPOINTER_BACKEND = os.getenv("CHECKPOINTER_BACKEND", "sqlite")
 checkpointer: BaseCheckpointer = get_checkpointer(backend=CHECKPOINTER_BACKEND)
@@ -161,14 +169,66 @@ def save_to_supabase(table: str, data: dict):
     return None
 
 async def book_calendly_appointment(data: CalendlyBookingRequest) -> dict:
-    """Book appointment via Calendly API with dynamic timezone"""
+    """Book appointment via Calendly API using production-ready client"""
     if not CALENDLY_API_KEY:
-        return {"error": "Calendly API key not configured"}
-
-    # Format start time
-    start_time = f"{data.date}T{data.time}:00"
+        return {
+            "success": False,
+            "error": "Calendly API key not configured",
+            "error_code": "CONFIG_MISSING"
+        }
 
     # Use provided timezone or default to Europe/Berlin
+    timezone = data.timezone or "Europe/Berlin"
+
+    # Use new client if available, otherwise fall back to legacy implementation
+    if CALENDLY_CLIENT_AVAILABLE:
+        try:
+            client = CalendlyClient(
+                api_key=CALENDLY_API_KEY,
+                user_uri=CALENDLY_USER_URI,
+                event_type_uri=CALENDLY_EVENT_TYPE_URI
+            )
+
+            result = await client.book_appointment(
+                name=data.name,
+                email=data.email,
+                date=data.date,
+                time=data.time,
+                phone=data.phone,
+                company=data.company,
+                notes=data.notes,
+                timezone=timezone
+            )
+
+            await client.close()
+
+            # Convert result to dict for response
+            return {
+                "success": result.success,
+                "status": result.status.value if isinstance(result.status, BookingStatus) else result.status,
+                "event_uri": result.event_uri,
+                "invitee_uri": result.invitee_uri,
+                "start_time": result.start_time,
+                "end_time": result.end_time,
+                "confirmation_url": result.confirmation_url,
+                "error_message": result.error_message,
+                "error_code": result.error_code
+            }
+
+        except Exception as e:
+            logger.error(f"Calendly booking error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "error_code": "CLIENT_ERROR"
+            }
+    else:
+        # Legacy fallback implementation
+        return await _book_calendly_legacy(data)
+
+async def _book_calendly_legacy(data: CalendlyBookingRequest) -> dict:
+    """Legacy Calendly booking implementation as fallback"""
+    start_time = f"{data.date}T{data.time}:00"
     timezone = data.timezone or "Europe/Berlin"
 
     headers = {
@@ -202,16 +262,41 @@ async def book_calendly_appointment(data: CalendlyBookingRequest) -> dict:
         ]
     }
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.post(
                 "https://api.calendly.com/scheduled_events",
                 headers=headers,
                 json=payload
             )
-            return response.json()
+
+            if response.status_code == 201:
+                result = response.json()
+                return {
+                    "success": True,
+                    "status": "confirmed",
+                    "event_uri": result.get("resource", {}).get("uri"),
+                    "raw_response": result
+                }
+            elif response.status_code == 422:
+                error_data = response.json()
+                return {
+                    "success": False,
+                    "error": error_data.get("message", "Validation failed"),
+                    "error_code": "VALIDATION_ERROR"
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"HTTP {response.status_code}",
+                    "error_code": f"HTTP_{response.status_code}"
+                }
         except Exception as e:
-            return {"error": str(e)}
+            return {
+                "success": False,
+                "error": str(e),
+                "error_code": "REQUEST_FAILED"
+            }
 
 # ============================================================================
 # API ENDPOINTS
@@ -358,7 +443,7 @@ async def handle_function_call(function_call: dict, conversation_id: str, phone_
         return JSONResponse({"status": "qualification_saved"})
 
     elif function_name == "bookAppointment":
-        # Book appointment
+        # Book appointment using Calendly
         booking_data = CalendlyBookingRequest(
             name=parameters.get("name", ""),
             email=parameters.get("email", ""),
@@ -366,10 +451,27 @@ async def handle_function_call(function_call: dict, conversation_id: str, phone_
             time=parameters.get("time", ""),
             phone=parameters.get("phone"),
             company=parameters.get("company"),
-            notes=parameters.get("notes")
+            notes=parameters.get("notes"),
+            timezone=parameters.get("timezone", "Europe/Berlin")
         )
 
         result = await book_calendly_appointment(booking_data)
+
+        # Prepare response for Vapi
+        if result.get("success"):
+            response_message = "Termin wurde erfolgreich gebucht."
+            if result.get("confirmation_url"):
+                response_message += f" Die Einwahldetails finden Sie unter: {result['confirmation_url']}"
+        else:
+            error_code = result.get("error_code", "UNKNOWN")
+            if error_code == "DOUBLE_BOOKING":
+                response_message = "Der gewählte Termin ist leider bereits vergeben."
+            elif error_code == "PAST_DATE":
+                response_message = "Der gewählte Zeitpunkt liegt in der Vergangenheit."
+            elif error_code == "CONFIG_MISSING":
+                response_message = "Die Kalenderintegration ist nicht korrekt konfiguriert."
+            else:
+                response_message = result.get("error_message", "Es ist ein Fehler aufgetreten.")
 
         # Save to database
         data = {
@@ -381,12 +483,23 @@ async def handle_function_call(function_call: dict, conversation_id: str, phone_
             "appointment_time": parameters.get("time"),
             "company": parameters.get("company"),
             "notes": parameters.get("notes"),
-            "calendly_response": result,
+            "timezone": parameters.get("timezone", "Europe/Berlin"),
+            "calendly_event_uri": result.get("event_uri"),
+            "calendly_invitee_uri": result.get("invitee_uri"),
+            "confirmation_url": result.get("confirmation_url"),
+            "booking_status": result.get("status"),
+            "success": result.get("success"),
+            "error_message": result.get("error_message"),
+            "error_code": result.get("error_code"),
             "created_at": datetime.now().isoformat()
         }
         save_to_supabase("appointments", data)
 
-        return JSONResponse({"status": "appointment_booked", "details": result})
+        return JSONResponse({
+            "status": "appointment_booked" if result.get("success") else "booking_failed",
+            "message": response_message,
+            "details": result
+        })
 
     elif function_name == "recordObjection":
         # Record objection

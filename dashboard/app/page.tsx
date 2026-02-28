@@ -1,9 +1,9 @@
-import Dashboard from '@/components/Dashboard'
+import DashboardV2 from '@/components/DashboardV2'
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gray-50">
-      <Dashboard />
+    <main className="min-h-screen">
+      <DashboardV2 />
     </main>
   )
 }
