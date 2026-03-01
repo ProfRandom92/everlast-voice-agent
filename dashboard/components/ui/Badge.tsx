@@ -31,7 +31,7 @@ export function Badge({ className, variant = 'default', size = 'md', ...props }:
             variant === 'lead-a',
           'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300':
             variant === 'lead-b',
-          'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300':
+          'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300':
             variant === 'lead-c',
           'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300':
             variant === 'lead-n',
